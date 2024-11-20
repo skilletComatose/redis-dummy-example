@@ -12,7 +12,8 @@ import org.springframework.data.redis.core.convert.KeyspaceConfiguration;
 import org.springframework.data.redis.core.convert.MappingConfiguration;
 import org.springframework.data.redis.core.index.IndexConfiguration;
 import org.springframework.data.redis.core.mapping.RedisMappingContext;
-import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
+import org.springframework.data.redis.listener.PatternTopic;
+import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 import java.util.List;
@@ -47,10 +48,20 @@ public class RedisConfiguration {
 		template.setConnectionFactory(connectionFactory);
 
 		template.setKeySerializer(new StringRedisSerializer());
+		template.setValueSerializer(new StringRedisSerializer());
 
-		template.setValueSerializer(new GenericJackson2JsonRedisSerializer());
-		template.setHashValueSerializer(new GenericJackson2JsonRedisSerializer());
+		template.setHashValueSerializer(new StringRedisSerializer());
 		return template;
+	}
+
+
+	@Bean
+	public RedisMessageListenerContainer redisContainer(RedisConnectionFactory connectionFactory,
+	                                                    RedisExpirationListener expirationListener) {
+		RedisMessageListenerContainer container = new RedisMessageListenerContainer();
+		container.setConnectionFactory(connectionFactory);
+		container.addMessageListener(expirationListener, new PatternTopic("__keyevent@*__:expired"));
+		return container;
 	}
 
 
